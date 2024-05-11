@@ -1,10 +1,6 @@
-my_string = "MERHABA"
+my_dict = {"anahtar1": "değer1", "anahtar2": "değer2"}
 
-# Her bir karakterin ASCII kodunu alarak hex tabanında temsil eden stringlere dönüştürün
-hex_codes = [hex(ord(char))[2:] for char in my_string]
-print(hex_codes)
-# Hexadecimal stringi birleştirin
-hexadecimal_str= "".join(hex_codes)
+# Yeni bir değer eklemek için indeksleme yöntemini kullanabilirsiniz
+my_dict["anahtar3"] = "değer3"
 
-# Hexadecimal stringi yazdırın
-print("ASCII kodları (hexadecimal):", hexadecimal_str)
+print(my_dict)
