@@ -16,8 +16,18 @@ def parse_line(parts):
     else:
         print("Hatalı satır:", line)
         return None, None, None
+def cumleyi_ayir(cumle, isaret):
+    bolunmus_kisimlar = cumle.split(isaret)
+    yeni_kisimlar = []
+    for i, kisim in enumerate(bolunmus_kisimlar):
+        if i != 0:
+            yeni_kisimlar.append(isaret + kisim)
+        else:
+            yeni_kisimlar.append(kisim)
+    return yeni_kisimlar
 
-
+    
+    
 with open("OpcodeTable.txt", "r") as dosya:
     opcodeTable = {}
     for satir  in dosya:
@@ -62,11 +72,11 @@ for code in codes:
         block_adres.append(adres)
         max_len = adres
         max_len_arr.append(block_adres[current_block])
-    if label not in sym_tab_t and label != None:
+    if label not in sym_tab_t and label != None and opcode != "EQU":
         sym_tab_t.append(hex(adres)[2:])
         sym_tab_t.append(label)
         sym_tab_t.append(current_block)
-       
+        sym_tab_t.append("R")
     elif label in sym_tab_t and label is not None:
         print(label)  
         print("HATA: Bu sembol, sembol tablosunda zaten var.")
@@ -115,8 +125,50 @@ for code in codes:
             block_table[operand]=[operand,hex(baslangic)[2:],current_block]
             adres = block_adres[current_block]
             max_len_arr.append(block_adres[current_block])
-            
-
+    equ_deger =0     
+    arti=0  
+    eksi=0
+    if opcode=="EQU":
+        if label not in sym_tab_t:
+            if  operand == "*":
+                sym_tab_t.append(hex(adres)[2:])
+                sym_tab_t.append(label)
+                sym_tab_t.append(current_block)
+                sym_tab_t.append("A")
+            elif "-" or "+" in operand :
+                arti = operand.count("+")
+                eksi = operand.count("-")
+                if arti+1 == eksi:
+                    bolunmus_kisimlar = cumleyi_ayir(operand, "-")
+                    yeni_kisimlar = []
+                    for i in bolunmus_kisimlar:
+                        if "+" in i:
+                            yeni_kisimlar.extend(cumleyi_ayir(i, "+"))
+                        else:
+                            yeni_kisimlar.append(i)
+                    for i in yeni_kisimlar:
+                        if i[0] == "+":
+                            equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
+                        elif i[0] =="-":
+                            equ_deger = equ_deger-int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
+                        else :
+                            equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i)-1],16)
+                    sym_tab_t.append(hex(equ_deger)[3:])
+                    sym_tab_t.append(label)
+                    sym_tab_t.append(current_block)
+                    sym_tab_t.append("A")
+                else:
+                    print("Bu işlem yapılamaz")
+                    
+            elif "*" or "/" in operand:
+                print("hata bu işaretler kullanılamaz")
+        else:
+            print("Bu etiket listede var")
+            print(sym_tab_t)
+        
+        
+        
+        
     if opcode == "WORD":
         adres += 3
     elif opcode == "RESW":
@@ -143,7 +195,7 @@ for code in codes:
             #print(opcode + " "+hex(adres))
             adres += 4
     else:
-        if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE":
+        if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU":
             
             print("HATA: Bu komut, komut tablosunda yok.")
     if opcode == "ORG":
@@ -189,9 +241,9 @@ for key,value in block_table.items():
         block_table[key][1]=hex(int(block_table[temp_key][1],16) + int(block_table[temp_key][3],16))[2:]
 sym_tab=[]
 index = 0
-for _ in range(int(len(sym_tab_t)/3)):
+for _ in range(int(len(sym_tab_t)/4)):
     satir = []
-    for _ in range(3):
+    for _ in range(4):
         satir.append(sym_tab_t[index])
         index += 1
     sym_tab.append(satir)
