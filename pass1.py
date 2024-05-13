@@ -118,9 +118,8 @@ for code in codes:
             current_block = block_table[operand][2]
             adres = block_adres[current_block]
         elif operand not in block_table:
-           
+
             current_block = current_block  + 1
-            
             block_adres.append(baslangic)
             block_table[operand]=[operand,hex(baslangic)[2:],current_block]
             adres = block_adres[current_block]
@@ -195,7 +194,7 @@ for code in codes:
             #print(opcode + " "+hex(adres))
             adres += 4
     else:
-        if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU":
+        if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU" and opcode !="WORD"and opcode !="RESW"and opcode !="BYTE" and opcode!="RESB" and opcode != "END":
             
             print("HATA: Bu komut, komut tablosunda yok.")
     if opcode == "ORG":
@@ -261,3 +260,15 @@ for key, value in lit_tab.items():
 for key, value in lit_tab.items():
     print(key, ":", value)
 print(block_table)
+
+with open("symtab.txt", 'w') as dosya:
+    for label in sym_tab:
+        dosya.write(label[0] + " " + label[1]+ " " + str(label[2]) + " " +label[3]  +"\n")
+
+with open("lit_tab.txt", 'w') as dosya:
+    for anahtar, deger in lit_tab.items():
+        dosya.write(anahtar+" " + deger[0]+" " + deger[1]+ " "+ str(deger[2]) + " " +str(deger[3])+ "\n")
+       
+with open("block_tab.txt", 'w') as dosya:
+    for anahtar, deger in block_table.items():
+        dosya.write(anahtar+" " + deger[0]+" " +str(deger[1]) + " "+ str(deger[2]) + " " +str(deger[3])+ "\n")

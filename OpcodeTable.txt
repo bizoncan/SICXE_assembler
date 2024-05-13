@@ -57,8 +57,3 @@ TIO     F8      1
 TIX     2C      3/4
 TIXR    B8      2
 WD      DC      3/4
-WORD    -       -   
-RESW    -       -   
-RESB    -       -
-BYTE    -       -
-END     -       -
