@@ -10,7 +10,7 @@ def parse_line(parts):
         opcode = parts[0]
         return None, opcode, None
     else:
-        print("Hatalı satır:", line)
+        print("Hatalı satır:", parts)
         return None, None, None
 def pc_adres(adres, sym_adres):
     sym_adres = int(sym_adres,16)
@@ -36,13 +36,29 @@ def fix_format3(str1):
     while len(str1) < 3 :
         str1=birlestir("0",str1)
     return str1
+def fix_word(str1):
+    while len(str1) <6:
+        str1=birlestir("0",str1)
+    return str1
+def fix_zero3(str1):
+    while len(str1)<6:
+        str1 = birlestir("0",str1)
+    return(str1)
+def fix_zero4(str1):
+    while len(str1)<5:
+        str1 = birlestir("0",str1)
+    return(str1)
+def complement_16_negative(num):
+    abs_num = abs(num)
+    complement = 0xffff - abs_num + 1
+    return hex(complement)
 with open("OpcodeTable.txt", "r") as dosya:
     opcodeTable = {}
     for satir  in dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
         
-with open("denemekod.txt", "r") as dosya:
+with open("OrnekKod.txt", "r") as dosya:
     codes = []
     for code in dosya:
         kelimeler = code.strip().split() 
@@ -67,11 +83,14 @@ with open("block_tab.txt", "r") as dosya:
             block_name=" "
             starting_adres, block_num, lenght = satir.split()
         block_tab[block_name] = starting_adres, block_num, lenght
+format_4=False
 
+base_register = 0
+x_register = 0
 object_code= []
 for code in codes:
     label, opcode, operand=parse_line(code)
-    print(opcode)
+    object_code_curr="0"
     if opcode == "START":
         
         if operand == None:
@@ -83,7 +102,7 @@ for code in codes:
             baslangic = int(operand, 16)           
             adres = baslangic        
             print(opcode + " "+hex(adres))
-    object_code_curr="0"
+    
     if opcode[0] == "+":
         if operand[0] == "@":
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
@@ -99,73 +118,188 @@ for code in codes:
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
             object_code_curr = hex(object_code_curr)[2:]
             object_code_curr=birlestir(object_code_curr,"9")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:-2]][0]))
+            object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
         else:
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
             object_code_curr = hex(object_code_curr)[2:]
             object_code_curr=birlestir(object_code_curr,"1")
             object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
         adres = adres + 4 
-    if opcode in opcodeTable:
-        
+    elif opcode in opcodeTable and operand != None:
         if operand[0] == "@":
-            if operand in symtab:
-                if pc_adres(adres,symtab[operand[1:]][0]):
+            if operand[1:] in symtab:
+                next_adres=adres + 6
+                if pc_adres(next_adres,symtab[operand[1:]][0]):
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 2
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"2")                 
-                    next_adres=adres + 3
+                    
                     object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
                 elif base_adres(adres,symtab[operand[1:]][0]):
                     object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"4")                 
                     next_adres=adres + 3
-                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-base_register)[2:]))
+                else:
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 2
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1") 
+                    format_4 = True
+                    object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[1:]][0],16))[2:]))
             else:
                 object_code_curr = int(opcodeTable[(opcode)][0],16) + 2
                 object_code_curr = hex(object_code_curr)[2:]
                 object_code_curr=birlestir(object_code_curr,"0")                 
                 object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
         elif operand[0] == "#":
-            
             if operand[1:] in symtab:
-                print(adres)
-                if pc_adres(adres,symtab[operand[1:]][0]):
+                next_adres=adres + 6
+                if pc_adres(next_adres,symtab[operand[1:]][0]):
                     
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"2")                 
-                    next_adres=adres + 3
+                    
                     object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
                 elif base_adres(adres,symtab[operand[1:]][0]):
-                    print("pipi")
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"4")                 
-                    next_adres=adres + 3
-                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
-            else:
-                
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-base_register)[2:]))
+                else:
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1") 
+                    format_4 = True
+                    object_code_curr=birlestir(object_code_curr,fix_format4(hex(symtab[operand[1:]][0],16)[2:]))
+            else:  
                 object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                 object_code_curr = hex(object_code_curr)[2:]
                 object_code_curr=birlestir(object_code_curr,"0")                 
                 object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+        elif operand[-2:] == ",X":
+            next_adres=adres + 6
+            if operand[:-2] in symtab:
+                if pc_adres(next_adres,symtab[operand[:-2]][0]):            
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"a")                 
+                    
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[:-2]][0],16)-next_adres+x_register)[2:]))
+                elif base_adres(adres,symtab[operand[:-2]][0]):
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"c")                 
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[:-2]][0],16)-base_register+x_register)[2:]))
+                elif int(symtab[operand[:-2]][0],16) < 61439:
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) 
+                    object_code_curr = hex(object_code_curr)[2:]
+                    toplam=  32768 + int(symtab[operand[:-2]][0],16)
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(toplam+x_register)[2:]))
+                else:
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"9") 
+                    format_4 = True
+                    object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
+            else:
+                object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                object_code_curr = hex(object_code_curr)[2:]
+                object_code_curr=birlestir(object_code_curr,"8")                 
+                object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(operand[:-2],16)+x_register)[2:]))
+        elif operand[0] == "=":
+            if operand in lit_tab:  
+                next_adres=adres + 6
+                if pc_adres(next_adres,lit_tab[operand][1]): 
+                    
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"2")                 
+                    
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(lit_tab[operand][1],16)-next_adres)[2:])) 
+                elif base_adres(adres,lit_tab[operand][1]):
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"4")        
+                             
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(lit_tab[operand][1],16)-base_register)[2:]))
+                else:
+                    print(operand)
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1") 
+                    format_4 = True
+                    
+                    object_code_curr=birlestir(object_code_curr,fix_format4(lit_tab[operand][1]))
+            else:
+                print("Hatalı yazım")
+        else:
+            next_adres=adres + 6
+            if operand in symtab:
+                if pc_adres(next_adres,symtab[operand][0]):          
+                   
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"2")                 
+                    toplam=int(symtab[operand][0],16)-next_adres
+                    if toplam< 0:
+                        top_hex=complement_16_negative(toplam)
+                        if top_hex[2:4]=="ff":
+                            top_hex= (top_hex[2:])[1:]
+                            object_code_curr=birlestir(object_code_curr,fix_format3(top_hex))
+                    else:
+                        object_code_curr=birlestir(object_code_curr,fix_format3(hex(toplam)[2:]))
+                elif base_adres(adres,symtab[operand][0]):
+                    
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"4")                 
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand][0],16)-base_register)[2:]))
+                elif int(symtab[operand][0],16) < 61439:
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) 
+                    object_code_curr = hex(object_code_curr)[2:]
+                    if len(symtab[operand][0])<= 3:
+                        object_code_curr=birlestir(object_code_curr,"0")
+                    toplam=  int(symtab[operand][0],16)
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(toplam)[2:]))
+                else:
+                    
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1") 
+                    format_4 = True
+                    object_code_curr=birlestir(object_code_curr,fix_format4(hex(symtab[operand][0])[2:]))
+            else:
+                    
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"0")                 
+                    object_code_curr=birlestir(object_code_curr,fix_format3(operand))      
+        if format_4:
+            adres = adres + 4
+            object_code_curr=fix_zero4(object_code_curr)
+        else:
+            adres = adres +3   
+            object_code_curr=fix_zero3(object_code_curr)    
+    elif opcode=="WORD":    
+        object_code_curr=fix_word(operand)
+        adres = adres  + 3
+    elif opcode=="BYTE":
+        if operand[:2] == "C'":
+            object_code_curr_tt= [hex(ord(i))[2:] for i in operand[2:-1]]
+            object_code_curr="".join(object_code_curr_tt)
+            adres=adres + int(len(object_code_curr) /2)
+        elif operand[:2]== "X'":
+            object_code_curr=operand[2:-1]
+            adres=adres + int(len(object_code_curr) /2)
+        else:
+            print("Hatali tuslama")
+    print(opcode)
+    
     if object_code_curr != "0":
         object_code.append(object_code_curr)
-    
+       
             
 
 print(object_code) 

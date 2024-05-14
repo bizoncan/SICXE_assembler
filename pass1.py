@@ -14,7 +14,7 @@ def parse_line(parts):
         opcode = parts[0]
         return None, opcode, None
     else:
-        print("Hatalı satır:", line)
+        print("Hatalı satır:", parts)
         return None, None, None
 def cumleyi_ayir(cumle, isaret):
     bolunmus_kisimlar = cumle.split(isaret)
