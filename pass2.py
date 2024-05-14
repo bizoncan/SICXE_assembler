@@ -3,12 +3,8 @@ def parse_line(parts):
         label, opcode, operand = parts
         return label, opcode, operand
     elif len(parts) == 2:
-        if "START" in parts:
-            label,opcode=parts
-            return label, opcode, None
-        else:
-            opcode, operand = parts
-            return None, opcode, operand
+        opcode, operand = parts
+        return None, opcode, operand
         
     elif len(parts) == 1:
         opcode = parts[0]
@@ -17,14 +13,12 @@ def parse_line(parts):
         print("Hatalı satır:", line)
         return None, None, None
 def pc_adres(adres, sym_adres):
-    adres = int(adres,16)
     sym_adres = int(sym_adres,16)
     if -2048<=sym_adres-adres <= 2047:
         return True
     else:
         return False
 def base_adres(adres,sym_adres):
-    adres = int(adres,16)
     sym_adres = int(sym_adres,16)
     if 0<=sym_adres-adres <= 4095:
         return True
@@ -73,20 +67,20 @@ with open("block_tab.txt", "r") as dosya:
             block_name=" "
             starting_adres, block_num, lenght = satir.split()
         block_tab[block_name] = starting_adres, block_num, lenght
-print(symtab)
-print(lit_tab)
-print(block_tab)
+
 object_code= []
 for code in codes:
     label, opcode, operand=parse_line(code)
+    print(opcode)
     if opcode == "START":
+        
         if operand == None:
             baslangic=0
             adres = baslangic
             print(opcode + " "+hex(adres))
         else:
             brk=True
-            baslangic = int(code[code.index(opcode)+1], 16)           
+            baslangic = int(operand, 16)           
             adres = baslangic        
             print(opcode + " "+hex(adres))
     object_code_curr="0"
@@ -95,17 +89,17 @@ for code in codes:
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
             object_code_curr = hex(object_code_curr)[2:]
             object_code_curr=birlestir(object_code_curr,"1")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
-        elif operand == "#":
+            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
+        elif operand[0] == "#":
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
             object_code_curr = hex(object_code_curr)[2:]
             object_code_curr=birlestir(object_code_curr,"1")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
+            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
         elif operand[-2:] == ",X":
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
             object_code_curr = hex(object_code_curr)[2:]
             object_code_curr=birlestir(object_code_curr,"9")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
+            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:-2]][0]))
         else:
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
             object_code_curr = hex(object_code_curr)[2:]
@@ -113,44 +107,50 @@ for code in codes:
             object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
         adres = adres + 4 
     if opcode in opcodeTable:
+        
         if operand[0] == "@":
             if operand in symtab:
-                if pc_adres(symtab[operand][0]):
-                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
+                if pc_adres(adres,symtab[operand[1:]][0]):
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 2
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"2")                 
                     next_adres=adres + 3
-                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand][0],16)-next_adres)[2:]))
-                elif base_adres(symtab[operand][0]):
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
+                elif base_adres(adres,symtab[operand[1:]][0]):
                     object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"4")                 
                     next_adres=adres + 3
-                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand][0],16)-next_adres)[2:]))
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
             else:
-                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
+                object_code_curr = int(opcodeTable[(opcode)][0],16) + 2
                 object_code_curr = hex(object_code_curr)[2:]
                 object_code_curr=birlestir(object_code_curr,"0")                 
-                object_code_curr=birlestir(object_code_curr,fix_format3(operand))
-        elif operand == "#":
-            if operand in symtab:
-                if pc_adres(symtab[operand][0]):
-                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
+                object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
+        elif operand[0] == "#":
+            
+            if operand[1:] in symtab:
+                print(adres)
+                if pc_adres(adres,symtab[operand[1:]][0]):
+                    
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"2")                 
                     next_adres=adres + 3
-                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand][0],16)-next_adres)[2:]))
-                elif base_adres(symtab[operand][0]):
-                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
+                elif base_adres(adres,symtab[operand[1:]][0]):
+                    print("pipi")
+                    object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"4")                 
                     next_adres=adres + 3
-                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand][0],16)-next_adres)[2:]))
+                    object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(symtab[operand[1:]][0],16)-next_adres)[2:]))
             else:
-                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
+                
+                object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                 object_code_curr = hex(object_code_curr)[2:]
                 object_code_curr=birlestir(object_code_curr,"0")                 
-                object_code_curr=birlestir(object_code_curr,fix_format3(operand))
+                object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
             
             
             
@@ -163,8 +163,8 @@ for code in codes:
             
             
             
-            
-    object_code.append(object_code_curr)
+    if object_code_curr != "0":
+        object_code.append(object_code_curr)
     
             
 

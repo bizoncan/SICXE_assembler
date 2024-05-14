@@ -1,1 +1,2 @@
-+LDT PoPo
+START 1000
+LDT #ZERO
