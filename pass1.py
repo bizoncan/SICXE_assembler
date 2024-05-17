@@ -34,12 +34,15 @@ with open("OpcodeTable.txt", "r") as dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
 
-with open("OrnekKod.txt", "r") as dosya:
+with open("ORNEKKOD2.txt", "r") as dosya:
     codes = []
+    
     for code in dosya:
         kelimeler = code.strip().split() 
+        
         codes.append(kelimeler)  
 
+   
 sym_tab_t=[]
 lit_tab_names = []
 lit_hex_value=0
@@ -65,6 +68,7 @@ for code in codes:
             print(opcode + " "+hex(adres))
         else:
             brk=True
+            
             baslangic = int(code[code.index(opcode)+1], 16)           
             adres = baslangic        
             print(opcode + " "+hex(adres))
@@ -133,7 +137,7 @@ for code in codes:
                 sym_tab_t.append(hex(adres)[2:])
                 sym_tab_t.append(label)
                 sym_tab_t.append(current_block)
-                sym_tab_t.append("A")
+                sym_tab_t.append("R")
             elif "-" or "+" in operand :
                 arti = operand.count("+")
                 eksi = operand.count("-")
@@ -145,14 +149,17 @@ for code in codes:
                             yeni_kisimlar.extend(cumleyi_ayir(i, "+"))
                         else:
                             yeni_kisimlar.append(i)
+                    
                     for i in yeni_kisimlar:
+                        
                         if i[0] == "+":
                             equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
                         elif i[0] =="-":
                             equ_deger = equ_deger-int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
                         else :
                             equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i)-1],16)
-                    sym_tab_t.append(hex(equ_deger)[3:])
+                    
+                    sym_tab_t.append(hex(equ_deger)[2:])
                     sym_tab_t.append(label)
                     sym_tab_t.append(current_block)
                     sym_tab_t.append("A")
@@ -178,7 +185,8 @@ for code in codes:
         if operand[:2] == "C'":
             adres=adres+len(operand[2:-1])
         elif operand[:2] == "X'":
-            adres=adres+int(len(operand[2:-1])/2)        
+            adres=adres+int(len(operand[2:-1])/2)       
+    
     if (opcode in opcodeTable or opcode[0]=="+") and opcode != "START":
         if opcode in opcodeTable:
             if opcodeTable[opcode][1] == "3/4":
@@ -237,6 +245,7 @@ for key,value in block_table.items():
    if key != "":
         key_index = keys_list.index(key)
         temp_key = keys_list[key_index-1]
+        print(key)
         block_table[key][1]=hex(int(block_table[temp_key][1],16) + int(block_table[temp_key][3],16))[2:]
 sym_tab=[]
 index = 0
@@ -250,7 +259,8 @@ for label in sym_tab:
     if label[2]==0:
         pass
     else:
-        label [0] = hex(int(block_table[keys_list[label[2]]][1],16)-baslangic + int(label[0],16))[2:]
+        if label[3] == "R":
+            label [0] = hex(int(block_table[keys_list[label[2]]][1],16)-baslangic + int(label[0],16))[2:]
 print(sym_tab)
 for key, value in lit_tab.items():
     if lit_tab[key][3]==0:

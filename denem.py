@@ -1,5 +1,10 @@
-liste1 = "merhaba"
-liste2 = "31"
-birlesmis_liste = liste2 + liste1
-birlesmis_string = ''.join(birlesmis_liste)
-print(birlesmis_string)
+def cumleyi_ayir(cumle, isaret):
+    bolunmus_kisimlar = cumle.split(isaret)
+    return bolunmus_kisimlar
+
+
+
+
+cumel = "31,32"
+isaret= ","
+print(cumleyi_ayir(cumel, isaret))

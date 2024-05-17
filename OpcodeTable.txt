@@ -2,7 +2,7 @@ ADD     18      3/4
 ADDF    58      3/4 
 ADDR    90      2
 AND     40      3/4
-CLEAR   4       2
+CLEAR   B4       2
 COMP    28      3/4
 COMPF   88      3/4
 COMPR   A0      2

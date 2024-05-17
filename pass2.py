@@ -1,3 +1,34 @@
+def find_reg(str1):
+    a=0
+    x=1
+    l=2
+    b=3
+    s=4
+    t=5
+    f=6
+    pc=8
+    sw=9
+    if str1=="A":
+        return a
+    elif str1=="X":
+        return x
+    elif str1=="L":
+        return l
+    elif str1=="B":
+        return b
+    elif str1=="S":
+        return s
+    elif str1=="T":
+        return t
+    elif str1=="F":
+        return f   
+    elif str1=="PC":
+        return pc
+    elif str1=="SW":
+        return sw
+def cumleyi_ayir(cumle, isaret):
+    bolunmus_kisimlar = cumle.split(isaret)
+    return bolunmus_kisimlar
 def parse_line(parts):
     if len(parts) == 3:
         label, opcode, operand = parts
@@ -58,7 +89,7 @@ with open("OpcodeTable.txt", "r") as dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
         
-with open("OrnekKod.txt", "r") as dosya:
+with open("ORNEKKOD2.txt", "r") as dosya:
     codes = []
     for code in dosya:
         kelimeler = code.strip().split() 
@@ -84,6 +115,8 @@ with open("block_tab.txt", "r") as dosya:
             starting_adres, block_num, lenght = satir.split()
         block_tab[block_name] = starting_adres, block_num, lenght
 format_4=False
+object_code_dict = []
+object_code= []
 current_block=0
 base_register = 0
 x_register = 0
@@ -92,7 +125,7 @@ block_adres=[]
 lit_list = []
 for key in block_tab:
     block_adres.append(int(block_tab[key][0],16))
-object_code= []
+
 for code in codes:
     label, opcode, operand=parse_line(code)
     object_code_curr="0"
@@ -110,6 +143,7 @@ for code in codes:
             print(opcode + " "+hex(adres))
     
     if opcode[0] == "+":
+        object_code.append(hex(adres))
         if operand[0] == "@":
             object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
             object_code_curr = hex(object_code_curr)[2:]
@@ -131,10 +165,11 @@ for code in codes:
             object_code_curr=birlestir(object_code_curr,"1")
             object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
         adres = adres + 4 
-    elif opcode in opcodeTable and operand != None:
+    elif opcode in opcodeTable and operand != None and opcodeTable[opcode][1] == "3/4":
+        object_code.append(hex(adres))
         if operand[0] == "@":
             if operand[1:] in symtab:
-                next_adres=adres + 6
+                next_adres=adres + 3
                 if pc_adres(next_adres,symtab[operand[1:]][0]):
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
@@ -166,7 +201,7 @@ for code in codes:
                 object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
         elif operand[0] == "#":
             if operand[1:] in symtab:
-                next_adres=adres + 6
+                next_adres=adres + 3
                 if pc_adres(next_adres,symtab[operand[1:]][0]):
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
@@ -196,7 +231,7 @@ for code in codes:
                 object_code_curr=birlestir(object_code_curr,"0")                 
                 object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
         elif operand[-2:] == ",X":
-            next_adres=adres + 6
+            next_adres=adres + 3
             if operand[:-2] in symtab:
                 if pc_adres(next_adres,symtab[operand[:-2]][0]):            
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
@@ -233,8 +268,9 @@ for code in codes:
                 object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(operand[:-2],16)+x_register)[2:]))
         elif operand[0] == "=":
             if operand in lit_tab:  
-                lit_list.append(operand)
-                next_adres=adres + 6
+                if operand not in lit_list:
+                    lit_list.append(operand)
+                next_adres=adres + 3
                 if pc_adres(next_adres,lit_tab[operand][1]): 
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
@@ -264,9 +300,11 @@ for code in codes:
             else:
                 print("Hatalı yazım")
         else:
-            next_adres=adres + 6
+            next_adres=adres + 3
             if operand in symtab:
-                if pc_adres(next_adres,symtab[operand][0]):          
+                if pc_adres(next_adres,symtab[operand][0]):  
+                    if opcode == "TD":
+                        print(hex(adres)) 
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"2")                 
@@ -313,7 +351,25 @@ for code in codes:
         else:
             adres = adres +3   
             object_code_curr=fix_zero3(object_code_curr)    
+    elif opcode in opcodeTable and opcodeTable[opcode][1] == "2":
+        object_code.append(hex(adres))
+        object_code_curr = opcodeTable[opcode][0]
+        if len(operand) == 1:
+            object_code_curr = birlestir(object_code_curr,str(find_reg(operand)))
+            object_code_curr = birlestir(object_code_curr,"0")
+        else:
+            print(code)
+            operands=cumleyi_ayir(operand,",")
+            object_code_curr = birlestir(object_code_curr,str(find_reg(operands[0])))
+            object_code_curr = birlestir(object_code_curr,str(find_reg(operands[1])))
+
+        adres = adres +2
+    elif opcode in opcodeTable and opcodeTable[opcode][1] == "1":
+        object_code.append(hex(adres))
+        object_code_curr=opcodeTable[opcode][0]
+        adres=adres+1
     elif opcode in opcodeTable and operand == None:
+        object_code.append(hex(adres)[2:])
         if opcode == "RSUB":
             object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
             object_code_curr = hex(object_code_curr)[2:]
@@ -322,22 +378,28 @@ for code in codes:
         else:
             object_code_curr = int(opcodeTable[(opcode)][0],16)
             object_code_curr = hex(object_code_curr)[2:]
+        adres = adres + 3
     elif opcode=="USE":     
         if operand == None:
             current_block=0
-            adres = int(block_tab[" "][1])
+            adres = block_adres[current_block]
         elif operand in block_tab:
-            current_block = int(block_tab[operand][1])
+            current_block = int(block_tab[operand][1],16)
             adres = block_adres[current_block]
         else: 
             print("Bu blok blok tablosunda yok")
+        print(hex(adres)[2:])
     elif opcode == "LTORG":
         if len(lit_list) == 0:
             print("Herhangi bir literal yok")
         else :
             for lit in lit_list:
                 object_code_curr = lit_tab[lit][0]
+                object_code.append(hex(adres)[2:])
+                object_code.append(lit)
                 object_code.append(object_code_curr)
+                print(lit)
+                adres = adres + int(lit_tab[lit][2])
             lit_list=[]
             object_code_curr="0"
     elif opcode == "ORG":
@@ -346,10 +408,11 @@ for code in codes:
         else:
             adres= int(symtab[operand][0])   
     elif opcode=="WORD":   
-        
+        object_code.append(hex(adres)[2:])
         object_code_curr=fix_word(hex(int(operand))[2:])
         adres = adres  + 3
     elif opcode=="BYTE":
+        object_code.append(hex(adres)[2:])
         if operand[:2] == "C'":
             object_code_curr_tt= [hex(ord(i))[2:] for i in operand[2:-1]]
             object_code_curr="".join(object_code_curr_tt)
@@ -360,20 +423,34 @@ for code in codes:
         else:
             print("Hatali tuslama")
     elif opcode =="END" and len(lit_list) != 0:
+        print(lit_list)
         for lit in lit_list:
             object_code_curr = lit_tab[lit][0]
             object_code.append(object_code_curr)
         lit_list=[]
         object_code_curr="0"
-    
+    elif opcode == "RESW":
+        adres += 3 * int(operand)
+    elif opcode == "RESB":
+        adres += int(operand)
+        
+        
+        
     if object_code_curr != "0" :
+        object_code.append(opcode)
         object_code.append(object_code_curr)
-   
-    block_adres[current_block]=adres
-            
+        
 
-print(object_code) 
-            
+    block_adres[current_block]=adres
+index=0
+for _ in range(int(len(object_code)/3)):
+    satir = []
+    for _ in range(3):
+        satir.append(object_code[index])
+        index += 1
+    object_code_dict.append(satir)
+
+print(object_code_dict)
             
             
             
