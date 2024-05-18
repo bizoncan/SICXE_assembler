@@ -151,13 +151,13 @@ for code in codes:
                             yeni_kisimlar.append(i)
                     
                     for i in yeni_kisimlar:
-                        
-                        if i[0] == "+":
-                            equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
-                        elif i[0] =="-":
-                            equ_deger = equ_deger-int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
-                        else :
-                            equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i)-1],16)
+                        if i in sym_tab_t:
+                            if i[0] == "+":
+                                equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
+                            elif i[0] =="-":
+                                equ_deger = equ_deger-int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
+                            else :
+                                equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i)-1],16)
                     
                     sym_tab_t.append(hex(equ_deger)[2:])
                     sym_tab_t.append(label)

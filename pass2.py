@@ -83,6 +83,10 @@ def complement_16_negative(num):
     abs_num = abs(num)
     complement = 0xffff - abs_num + 1
     return hex(complement)
+def fix_zero2(str1):
+    while len(str1)<2:
+        str1 = birlestir("0",str1)
+    return str1
 with open("OpcodeTable.txt", "r") as dosya:
     opcodeTable = {}
     for satir  in dosya:
@@ -123,9 +127,20 @@ x_register = 0
 linkage_register=0
 block_adres=[]
 lit_list = []
+header_kaydi = []
+text_kaydi= []
+mod_kaydi=[]
+use_used=False
+ilk_t = True
+kod_uzunluk=0
+temp_t_l=""
+temp_t_r=""
+test_temp_t_l=""
+end_kaydi=[]
 for key in block_tab:
     block_adres.append(int(block_tab[key][0],16))
-
+    program_length=fix_word(hex(int(block_tab[key][0],16)+int(block_tab[key][2],16))[2:])
+print(program_length)
 for code in codes:
     label, opcode, operand=parse_line(code)
     object_code_curr="0"
@@ -141,32 +156,33 @@ for code in codes:
             baslangic = int(operand, 16)           
             adres = baslangic        
             print(opcode + " "+hex(adres))
-    
+        header_kaydi.append("H"+"^" +label+"^" +fix_word(hex(baslangic)[2:])+"^"+program_length)
     if opcode[0] == "+":
-        object_code.append(hex(adres))
-        if operand[0] == "@":
-            object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
-            object_code_curr = hex(object_code_curr)[2:]
-            object_code_curr=birlestir(object_code_curr,"1")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
-        elif operand[0] == "#":
-            object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
-            object_code_curr = hex(object_code_curr)[2:]
-            object_code_curr=birlestir(object_code_curr,"1")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
-        elif operand[-2:] == ",X":
-            object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
-            object_code_curr = hex(object_code_curr)[2:]
-            object_code_curr=birlestir(object_code_curr,"9")
-            object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
-        else:
-            object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
-            object_code_curr = hex(object_code_curr)[2:]
-            object_code_curr=birlestir(object_code_curr,"1")
-            object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
-        adres = adres + 4 
+            object_code.append(fix_word(hex(adres)[2:]))
+            if operand[0] == "@":
+                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
+                object_code_curr = hex(object_code_curr)[2:]
+                object_code_curr=birlestir(object_code_curr,"1")
+                object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
+            elif operand[0] == "#":
+                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
+                object_code_curr = hex(object_code_curr)[2:]
+                object_code_curr=birlestir(object_code_curr,"1")
+                object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
+            elif operand[-2:] == ",X":
+                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
+                object_code_curr = hex(object_code_curr)[2:]
+                object_code_curr=birlestir(object_code_curr,"9")
+                object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
+            else:
+                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
+                object_code_curr = hex(object_code_curr)[2:]
+                object_code_curr=birlestir(object_code_curr,"1")
+                object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
+            mod_kaydi.append("M" + "^"+fix_word(hex(adres - baslangic)[2:])+ "^" + "05" )
+            adres = adres + 4 
     elif opcode in opcodeTable and operand != None and opcodeTable[opcode][1] == "3/4":
-        object_code.append(hex(adres))
+        object_code.append(fix_word(hex(adres)[2:]))
         if operand[0] == "@":
             if operand[1:] in symtab:
                 next_adres=adres + 3
@@ -194,6 +210,7 @@ for code in codes:
                     object_code_curr=birlestir(object_code_curr,"1") 
                     format_4 = True
                     object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[1:]][0],16))[2:]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "05" )
             else:
                 object_code_curr = int(opcodeTable[(opcode)][0],16) + 2
                 object_code_curr = hex(object_code_curr)[2:]
@@ -225,6 +242,7 @@ for code in codes:
                     object_code_curr=birlestir(object_code_curr,"1") 
                     format_4 = True
                     object_code_curr=birlestir(object_code_curr,fix_format4(hex(symtab[operand[1:]][0],16)[2:]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "05" )
             else:  
                 object_code_curr = int(opcodeTable[(opcode)][0],16) + 1
                 object_code_curr = hex(object_code_curr)[2:]
@@ -255,12 +273,14 @@ for code in codes:
                     object_code_curr = hex(object_code_curr)[2:]
                     toplam=  32768 + int(symtab[operand[:-2]][0],16)
                     object_code_curr=birlestir(object_code_curr,fix_format3(hex(toplam+x_register)[2:]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "04" )
                 else:
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"9") 
                     format_4 = True
                     object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "05" )
             else:
                 object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                 object_code_curr = hex(object_code_curr)[2:]
@@ -290,21 +310,18 @@ for code in codes:
                              
                     object_code_curr=birlestir(object_code_curr,fix_format3(hex(int(lit_tab[operand][1],16)-base_register)[2:]))
                 else:
-                    print(operand)
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"1") 
                     format_4 = True
-                    
                     object_code_curr=birlestir(object_code_curr,fix_format4(lit_tab[operand][1]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "05" )
             else:
                 print("Hatalı yazım")
         else:
             next_adres=adres + 3
             if operand in symtab:
                 if pc_adres(next_adres,symtab[operand][0]):  
-                    if opcode == "TD":
-                        print(hex(adres)) 
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"2")                 
@@ -317,8 +334,6 @@ for code in codes:
                     else:
                         object_code_curr=birlestir(object_code_curr,fix_format3(hex(toplam)[2:]))
                 elif base_adres(base_register,symtab[operand][0]):
-                    if opcode=="LDX":
-                        print(31)
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
                     object_code_curr=birlestir(object_code_curr,"4")                 
@@ -331,6 +346,7 @@ for code in codes:
                         object_code_curr=birlestir(object_code_curr,"0")
                     toplam=  int(symtab[operand][0],16)
                     object_code_curr=birlestir(object_code_curr,fix_format3(hex(toplam)[2:]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "04" )
                 else:
 
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
@@ -338,6 +354,7 @@ for code in codes:
                     object_code_curr=birlestir(object_code_curr,"1") 
                     format_4 = True
                     object_code_curr=birlestir(object_code_curr,fix_format4(hex(symtab[operand][0])[2:]))
+                    mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "05" )
             else:
                     
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
@@ -345,6 +362,7 @@ for code in codes:
                     object_code_curr=birlestir(object_code_curr,"0")                 
                     object_code_curr=birlestir(object_code_curr,fix_format3(operand))      
         if format_4:
+            
             adres = adres + 4
             object_code_curr=fix_zero4(object_code_curr)
             format_4=False
@@ -352,24 +370,23 @@ for code in codes:
             adres = adres +3   
             object_code_curr=fix_zero3(object_code_curr)    
     elif opcode in opcodeTable and opcodeTable[opcode][1] == "2":
-        object_code.append(hex(adres))
+        object_code.append(fix_word(hex(adres)[2:]))
         object_code_curr = opcodeTable[opcode][0]
         if len(operand) == 1:
             object_code_curr = birlestir(object_code_curr,str(find_reg(operand)))
             object_code_curr = birlestir(object_code_curr,"0")
         else:
-            print(code)
             operands=cumleyi_ayir(operand,",")
             object_code_curr = birlestir(object_code_curr,str(find_reg(operands[0])))
             object_code_curr = birlestir(object_code_curr,str(find_reg(operands[1])))
 
         adres = adres +2
     elif opcode in opcodeTable and opcodeTable[opcode][1] == "1":
-        object_code.append(hex(adres))
+        object_code.append(fix_word(hex(adres)[2:]))
         object_code_curr=opcodeTable[opcode][0]
         adres=adres+1
     elif opcode in opcodeTable and operand == None:
-        object_code.append(hex(adres)[2:])
+        object_code.append(fix_word(hex(adres)[2:]))
         if opcode == "RSUB":
             object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
             object_code_curr = hex(object_code_curr)[2:]
@@ -380,39 +397,54 @@ for code in codes:
             object_code_curr = hex(object_code_curr)[2:]
         adres = adres + 3
     elif opcode=="USE":     
+        
         if operand == None:
+            use_used=True
             current_block=0
             adres = block_adres[current_block]
         elif operand in block_tab:
+            use_used=True
             current_block = int(block_tab[operand][1],16)
             adres = block_adres[current_block]
         else: 
             print("Bu blok blok tablosunda yok")
-        print(hex(adres)[2:])
     elif opcode == "LTORG":
         if len(lit_list) == 0:
             print("Herhangi bir literal yok")
         else :
             for lit in lit_list:
                 object_code_curr = lit_tab[lit][0]
-                object_code.append(hex(adres)[2:])
+                object_code.append(fix_word(hex(adres)[2:]))
                 object_code.append(lit)
                 object_code.append(object_code_curr)
-                print(lit)
+               
+                if kod_uzunluk + len(object_code_curr) <= 60 :
+                    kod_uzunluk= len(object_code_curr)+ kod_uzunluk 
+                    temp_t_l=birlestir(temp_t_l,object_code_curr)
+                else :
+                    print(opcode)
+                    text_lenght=fix_zero2(hex(int(len(temp_t_l)/2))[2:])
+                    temp_t_l = birlestir( text_lenght, temp_t_l)
+                    temp_t_r = birlestir(temp_t_r,temp_t_l)
+                    text_kaydi.append(temp_t_r)
+                    temp_t_r = birlestir("T",fix_word(hex(adres-int(len(object_code_curr)/2))[2:]))
+                    temp_t_l= birlestir("",object_code_curr)
+                    kod_uzunluk=len(object_code_curr)
                 adres = adres + int(lit_tab[lit][2])
             lit_list=[]
             object_code_curr="0"
+            
     elif opcode == "ORG":
         if operand == None:
             pass
         else:
             adres= int(symtab[operand][0])   
     elif opcode=="WORD":   
-        object_code.append(hex(adres)[2:])
+        object_code.append(fix_word(hex(adres)[2:]))
         object_code_curr=fix_word(hex(int(operand))[2:])
         adres = adres  + 3
     elif opcode=="BYTE":
-        object_code.append(hex(adres)[2:])
+        object_code.append(fix_word(hex(adres)[2:]))
         if operand[:2] == "C'":
             object_code_curr_tt= [hex(ord(i))[2:] for i in operand[2:-1]]
             object_code_curr="".join(object_code_curr_tt)
@@ -422,26 +454,58 @@ for code in codes:
             adres=adres + int(len(object_code_curr) /2)
         else:
             print("Hatali tuslama")
-    elif opcode =="END" and len(lit_list) != 0:
-        print(lit_list)
-        for lit in lit_list:
-            object_code_curr = lit_tab[lit][0]
-            object_code.append(object_code_curr)
-        lit_list=[]
-        object_code_curr="0"
+    elif opcode =="END" :
+        if len(lit_list) != 0:
+            for lit in lit_list:
+                object_code_curr = lit_tab[lit][0]
+                object_code.append(object_code_curr)
+            lit_list=[]
+            object_code_curr="0"
+        end_kaydi.append("E"+fix_word(hex(baslangic)[2:]))
+        print(31)
     elif opcode == "RESW":
         adres += 3 * int(operand)
     elif opcode == "RESB":
         adres += int(operand)
         
-        
-        
-    if object_code_curr != "0" :
-        object_code.append(opcode)
-        object_code.append(object_code_curr)
+    if object_code_curr != "0" or use_used :
+        if object_code_curr != "0":
+            object_code.append(opcode)
+            object_code.append(object_code_curr)
+        if ilk_t and object_code_curr != "0" :
+            temp_t_r = birlestir("T",fix_word(hex(adres-int(len(object_code_curr)/2))[2:]))
+            ilk_t=False
+        if use_used :
+            if temp_t_r != "" and temp_t_l !="":
+                text_lenght=fix_zero2(hex(int(len(temp_t_l)/2))[2:])
+                temp_t_l = birlestir( text_lenght, temp_t_l)
+                temp_t_r = birlestir(temp_t_r,temp_t_l)
+                text_kaydi.append(temp_t_r)
+                temp_t_l=""
+                temp_t_r = birlestir("T",fix_word(hex(adres-int(len(object_code_curr)/2))[2:]))
+                kod_uzunluk=0
+            ilk_t=True
+            use_used=False
+        elif kod_uzunluk + len(object_code_curr) <= 60 and object_code_curr != "0":
+            kod_uzunluk= len(object_code_curr)+ kod_uzunluk 
+            temp_t_l=birlestir(temp_t_l,object_code_curr)
+        elif object_code_curr != "0" :
+            text_lenght=fix_zero2(hex(int(len(temp_t_l)/2))[2:])
+            temp_t_l = birlestir( text_lenght, temp_t_l)
+            temp_t_r = birlestir(temp_t_r,temp_t_l)
+            text_kaydi.append(temp_t_r)
+            temp_t_r = birlestir("T",fix_word(hex(adres-int(len(object_code_curr)/2))[2:]))
+            temp_t_l= birlestir("",object_code_curr)
+            kod_uzunluk=len(object_code_curr)
         
 
+
     block_adres[current_block]=adres
+if len(temp_t_l) != 0:
+    text_lenght=fix_zero2(hex(int(len(temp_t_l)/2))[2:])
+    temp_t_l = birlestir( text_lenght, temp_t_l)
+    temp_t_r = birlestir(temp_t_r,temp_t_l)
+    text_kaydi.append(temp_t_r)
 index=0
 for _ in range(int(len(object_code)/3)):
     satir = []
@@ -450,8 +514,19 @@ for _ in range(int(len(object_code)/3)):
         index += 1
     object_code_dict.append(satir)
 
-print(object_code_dict)
-            
-            
-            
-            
+object_program=[]
+object_program.append(header_kaydi[0])
+for i in text_kaydi:
+    object_program.append(i)
+for i in mod_kaydi:
+    object_program.append(i)
+object_program.append(end_kaydi[0])
+print(text_kaydi)
+for i in object_program:
+    print(i)
+with open("object_code.txt", 'w') as dosya:
+    for code in object_code_dict:
+        dosya.write(code[0] + " " + code[1]+ " " + str(code[2]) + "\n")  
+with open("mod_kaydi.txt", 'w') as dosya:
+    for kayit in mod_kaydi:
+        dosya.write(kayit + "\n")   
