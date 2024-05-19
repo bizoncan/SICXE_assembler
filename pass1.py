@@ -4,8 +4,8 @@ def parse_line(parts):
         return label, opcode, operand
     elif len(parts) == 2:
         if "START" in parts:
-            label,opcode=parts
-            return label, opcode, None
+            opcode,operand=parts
+            return "*", opcode, operand
         else:
             opcode, operand = parts
             return None, opcode, operand
@@ -34,7 +34,7 @@ with open("OpcodeTable.txt", "r") as dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
 
-with open("ORNEKKOD2.txt", "r") as dosya:
+with open("source_code.txt", "r") as dosya:
     codes = []
     
     for code in dosya:
@@ -76,6 +76,7 @@ for code in codes:
         block_adres.append(adres)
         max_len = adres
         max_len_arr.append(block_adres[current_block])
+        block_adres[current_block] = adres
     if label not in sym_tab_t and label != None and opcode != "EQU":
         sym_tab_t.append(hex(adres)[2:])
         sym_tab_t.append(label)
@@ -203,7 +204,7 @@ for code in codes:
             adres += 4
     else:
         if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU" and opcode !="WORD"and opcode !="RESW"and opcode !="BYTE" and opcode!="RESB" and opcode != "END":
-            
+            print(opcode)
             print("HATA: Bu komut, komut tablosunda yok.")
     if opcode == "ORG":
 
@@ -272,13 +273,19 @@ for key, value in lit_tab.items():
 print(block_table)
 
 with open("symtab.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
     for label in sym_tab:
         dosya.write(label[0] + " " + label[1]+ " " + str(label[2]) + " " +label[3]  +"\n")
 
 with open("lit_tab.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
     for anahtar, deger in lit_tab.items():
         dosya.write(anahtar+" " + deger[0]+" " + deger[1]+ " "+ str(deger[2]) + " " +str(deger[3])+ "\n")
        
 with open("block_tab.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
     for anahtar, deger in block_table.items():
         dosya.write(anahtar+" " + deger[0]+" " +str(deger[1]) + " "+ str(deger[2]) + " " +str(deger[3])+ "\n")

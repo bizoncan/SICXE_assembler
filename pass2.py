@@ -34,6 +34,13 @@ def parse_line(parts):
         label, opcode, operand = parts
         return label, opcode, operand
     elif len(parts) == 2:
+        if "START" in parts:
+            opcode,operand=parts
+            return "*", opcode, operand
+        else:
+            opcode, operand = parts
+            return None, opcode, operand
+    elif len(parts) == 2:
         opcode, operand = parts
         return None, opcode, operand
         
@@ -93,7 +100,7 @@ with open("OpcodeTable.txt", "r") as dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
         
-with open("ORNEKKOD2.txt", "r") as dosya:
+with open("source_code.txt", "r") as dosya:
     codes = []
     for code in dosya:
         kelimeler = code.strip().split() 
@@ -470,7 +477,7 @@ for code in codes:
         
     if object_code_curr != "0" or use_used :
         if object_code_curr != "0":
-            object_code.append(opcode)
+            object_code.append(code)
             object_code.append(object_code_curr)
         if ilk_t and object_code_curr != "0" :
             temp_t_r = birlestir("T",fix_word(hex(adres-int(len(object_code_curr)/2))[2:]))
@@ -521,12 +528,18 @@ for i in text_kaydi:
 for i in mod_kaydi:
     object_program.append(i)
 object_program.append(end_kaydi[0])
-print(text_kaydi)
+
 for i in object_program:
     print(i)
 with open("object_code.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
     for code in object_code_dict:
-        dosya.write(code[0] + " " + code[1]+ " " + str(code[2]) + "\n")  
-with open("mod_kaydi.txt", 'w') as dosya:
-    for kayit in mod_kaydi:
-        dosya.write(kayit + "\n")   
+        dosya.write(code[0] +" ")  
+        dosya.write(" ".join(code[1]))
+        dosya.write(" "+str(code[2])+ "\n")  
+with open("object_program.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
+    for code in object_program:
+        dosya.write(code+"\n")  
