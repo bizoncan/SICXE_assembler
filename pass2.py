@@ -94,6 +94,12 @@ def fix_zero2(str1):
     while len(str1)<2:
         str1 = birlestir("0",str1)
     return str1
+with open("object_code.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate() 
+with open("object_program.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate() 
 with open("OpcodeTable.txt", "r") as dosya:
     opcodeTable = {}
     for satir  in dosya:
@@ -143,11 +149,12 @@ kod_uzunluk=0
 temp_t_l=""
 temp_t_r=""
 test_temp_t_l=""
+hatalar=[]
 end_kaydi=[]
 for key in block_tab:
     block_adres.append(int(block_tab[key][0],16))
     program_length=fix_word(hex(int(block_tab[key][0],16)+int(block_tab[key][2],16))[2:])
-print(program_length)
+
 for code in codes:
     label, opcode, operand=parse_line(code)
     object_code_curr="0"
@@ -325,6 +332,7 @@ for code in codes:
                     mod_kaydi.append("M" + fix_word(hex(adres - baslangic)[2:]) + "05" )
             else:
                 print("Hatalı yazım")
+                hatalar.append("Bu literal tabloda yok:" +operand)
         else:
             next_adres=adres + 3
             if operand in symtab:
@@ -415,9 +423,11 @@ for code in codes:
             adres = block_adres[current_block]
         else: 
             print("Bu blok blok tablosunda yok")
+            hatalar.append("Bu blok blok tablosunda yok:" +operand)
     elif opcode == "LTORG":
         if len(lit_list) == 0:
             print("Herhangi bir literal yok")
+            hatalar.append("Herhangi bir literal yok:" +adres)
         else :
             for lit in lit_list:
                 object_code_curr = lit_tab[lit][0]
@@ -461,6 +471,7 @@ for code in codes:
             adres=adres + int(len(object_code_curr) /2)
         else:
             print("Hatali tuslama")
+            hatalar.append("Hatali tuslama:" +adres)
     elif opcode =="END" :
         if len(lit_list) != 0:
             for lit in lit_list:
@@ -527,7 +538,8 @@ for i in text_kaydi:
     object_program.append(i)
 for i in mod_kaydi:
     object_program.append(i)
-object_program.append(end_kaydi[0])
+if "END" in codes:
+    object_program.append(end_kaydi[0])
 
 for i in object_program:
     print(i)
@@ -543,3 +555,6 @@ with open("object_program.txt", 'w') as dosya:
     dosya.truncate()
     for code in object_program:
         dosya.write(code+"\n")  
+with open("hata.txt", 'w') as dosya:
+    for hatacik in hatalar:
+        dosya.write(hatacik)

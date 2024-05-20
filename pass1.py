@@ -42,7 +42,7 @@ with open("source_code.txt", "r") as dosya:
         
         codes.append(kelimeler)  
 
-   
+hatalar=[]
 sym_tab_t=[]
 lit_tab_names = []
 lit_hex_value=0
@@ -60,6 +60,9 @@ brk = False
 max_len = 0
 for code in codes:
     label, opcode, operand=parse_line(code)
+    if "END" not in codes:
+        print("END yok assembler düzgün çalışmayabilir")
+        hatalar.append("END yok assembler düzgün çalışmayabilir")
     if opcode == "START":
         if operand == None:
             baslangic=0
@@ -85,7 +88,7 @@ for code in codes:
     elif label in sym_tab_t and label is not None:
         print(label)  
         print("HATA: Bu sembol, sembol tablosunda zaten var.")
-
+        hatalar.append("HATA: Bu sembol, sembol tablosunda zaten var.")
     if operand !=None :
         if operand[0]=="=":
             if operand[1] == "C":
@@ -96,6 +99,7 @@ for code in codes:
                     lit_tab_names.append(operand)   
             else:
                 print("Hatali tuslama")
+                hatalar.append("Hatali tuşlama satır: "+adres)
     if opcode == "LTORG":
         for lits in lit_tab_names:
             if lits[1] == "C":
@@ -115,7 +119,6 @@ for code in codes:
         lit_tab_names=[]
         
     if opcode == "USE":
-        
         if operand == None:
             current_block=0
             adres = block_adres[current_block]
@@ -123,7 +126,6 @@ for code in codes:
             current_block = block_table[operand][2]
             adres = block_adres[current_block]
         elif operand not in block_table:
-
             current_block = current_block  + 1
             block_adres.append(baslangic)
             block_table[operand]=[operand,hex(baslangic)[2:],current_block]
@@ -165,12 +167,15 @@ for code in codes:
                     sym_tab_t.append(current_block)
                     sym_tab_t.append("A")
                 else:
-                    print("Bu işlem yapılamaz")
+                    print("Eşit sayıda zıt işaret olmalı EQU düzgün çalışmaz")
+                    hatalar.append("Eşit sayıda zıt işaret olmalı EQU düzgün çalışmaz")
                     
             elif "*" or "/" in operand:
                 print("hata bu işaretler kullanılamaz")
+                hatalar.append("Hata bu işaretler kullanılamaz: / , *")
         else:
             print("Bu etiket listede var")
+            hatalar.append("Hata bu etiket listede var: "+label)
             print(sym_tab_t)
         
         
@@ -206,6 +211,7 @@ for code in codes:
         if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU" and opcode !="WORD"and opcode !="RESW"and opcode !="BYTE" and opcode!="RESB" and opcode != "END":
             print(opcode)
             print("HATA: Bu komut, komut tablosunda yok.")
+            hatalar.append("HATA bu komut, komut tablosunda yok: "+opcode)
     if opcode == "ORG":
 
         if operand == None:
@@ -289,3 +295,8 @@ with open("block_tab.txt", 'w') as dosya:
     dosya.truncate()
     for anahtar, deger in block_table.items():
         dosya.write(anahtar+" " + deger[0]+" " +str(deger[1]) + " "+ str(deger[2]) + " " +str(deger[3])+ "\n")
+with open("hata.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
+    for hatacik in hatalar:
+        dosya.write(hatacik)
