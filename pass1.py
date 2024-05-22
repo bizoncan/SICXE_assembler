@@ -3,16 +3,24 @@ def parse_line(parts):
         label, opcode, operand = parts
         return label, opcode, operand
     elif len(parts) == 2:
-        if "START" in parts:
+        
+        if "START" in parts and parts[0] == "START":
             opcode,operand=parts
             return "*", opcode, operand
+        elif "START" in parts and parts[1] == "START": 
+            label,opcode=parts
+            return label, opcode, 0
         else:
             opcode, operand = parts
             return None, opcode, operand
         
     elif len(parts) == 1:
-        opcode = parts[0]
-        return None, opcode, None
+        if "START" in parts:
+            opcode = parts[0]
+            return "*", opcode, 0
+        else:
+            opcode = parts[0]
+            return None, opcode, None
     else:
         print("Hatalı satır:", parts)
         return None, None, None
@@ -26,7 +34,11 @@ def cumleyi_ayir(cumle, isaret):
             yeni_kisimlar.append(kisim)
     return yeni_kisimlar
 
-    
+def listeyi_dosyaya_yaz(liste, dosya_yolu):
+    with open(dosya_yolu, 'w') as dosya:
+        for eleman in liste:
+            dosya.write(str(eleman) + '\n')
+            dosya.flush()
     
 with open("OpcodeTable.txt", "r") as dosya:
     opcodeTable = {}
@@ -34,15 +46,40 @@ with open("OpcodeTable.txt", "r") as dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
 
+hatalar=[]
+kod_bos=False
 with open("source_code.txt", "r") as dosya:
     codes = []
-    
+    ilk_karakter = dosya.read(1)
+    if not ilk_karakter:
+        hatalar.append("Dosya bos" + "\n")
+        
+        kod_bos=True
+with open("source_code.txt", "r") as dosya:
+    codes = []
     for code in dosya:
         kelimeler = code.strip().split() 
         
         codes.append(kelimeler)  
 
-hatalar=[]
+with open("symtab.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
+
+
+with open("lit_tab.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
+
+       
+with open("block_tab.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
+
+with open("hata.txt", 'w') as dosya:
+    dosya.seek(0)  # Dosyanın başına git
+    dosya.truncate()
+
 sym_tab_t=[]
 lit_tab_names = []
 lit_hex_value=0
@@ -58,11 +95,10 @@ baslangic=0
 cnt=0
 brk = False
 max_len = 0
+
+
 for code in codes:
     label, opcode, operand=parse_line(code)
-    if "END" not in codes:
-        print("END yok assembler düzgün çalışmayabilir")
-        hatalar.append("END yok assembler düzgün çalışmayabilir")
     if opcode == "START":
         if operand == None:
             baslangic=0
@@ -80,6 +116,7 @@ for code in codes:
         max_len = adres
         max_len_arr.append(block_adres[current_block])
         block_adres[current_block] = adres
+        print(current_block)
     if label not in sym_tab_t and label != None and opcode != "EQU":
         sym_tab_t.append(hex(adres)[2:])
         sym_tab_t.append(label)
@@ -88,7 +125,7 @@ for code in codes:
     elif label in sym_tab_t and label is not None:
         print(label)  
         print("HATA: Bu sembol, sembol tablosunda zaten var.")
-        hatalar.append("HATA: Bu sembol, sembol tablosunda zaten var.")
+        hatalar.append("HATA: Bu sembol, sembol tablosunda zaten var."+"\n")
     if operand !=None :
         if operand[0]=="=":
             if operand[1] == "C":
@@ -99,7 +136,7 @@ for code in codes:
                     lit_tab_names.append(operand)   
             else:
                 print("Hatali tuslama")
-                hatalar.append("Hatali tuşlama satır: "+adres)
+                hatalar.append("Hatali tuşlama satir: "+adres+"\n")
     if opcode == "LTORG":
         for lits in lit_tab_names:
             if lits[1] == "C":
@@ -167,15 +204,16 @@ for code in codes:
                     sym_tab_t.append(current_block)
                     sym_tab_t.append("A")
                 else:
-                    print("Eşit sayıda zıt işaret olmalı EQU düzgün çalışmaz")
-                    hatalar.append("Eşit sayıda zıt işaret olmalı EQU düzgün çalışmaz")
+                    print("Eşit sayida zıt işaret olmalı EQU düzgün çalışmaz")
+                    hatalar.append("Esit sayida zit işaret olmali EQU düzgün çalişmaz"+"\n")
                     
             elif "*" or "/" in operand:
-                print("hata bu işaretler kullanılamaz")
-                hatalar.append("Hata bu işaretler kullanılamaz: / , *")
+                print("hata bu işaretler kullanilamaz")
+                hatalar.append("Hata bu işaretler kullanilamaz: / , *"+"\n")
         else:
             print("Bu etiket listede var")
-            hatalar.append("Hata bu etiket listede var: "+label)
+            hatalar.append("Hata bu etiket listede var: "+label+"\n")
+            
             print(sym_tab_t)
         
         
@@ -211,7 +249,8 @@ for code in codes:
         if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU" and opcode !="WORD"and opcode !="RESW"and opcode !="BYTE" and opcode!="RESB" and opcode != "END":
             print(opcode)
             print("HATA: Bu komut, komut tablosunda yok.")
-            hatalar.append("HATA bu komut, komut tablosunda yok: "+opcode)
+            hatalar.append("HATA bu komut, komut tablosunda yok: "+ opcode +  "\n")
+           
     if opcode == "ORG":
 
         if operand == None:
@@ -252,7 +291,6 @@ for key,value in block_table.items():
    if key != "":
         key_index = keys_list.index(key)
         temp_key = keys_list[key_index-1]
-        print(key)
         block_table[key][1]=hex(int(block_table[temp_key][1],16) + int(block_table[temp_key][3],16))[2:]
 sym_tab=[]
 index = 0
@@ -295,8 +333,12 @@ with open("block_tab.txt", 'w') as dosya:
     dosya.truncate()
     for anahtar, deger in block_table.items():
         dosya.write(anahtar+" " + deger[0]+" " +str(deger[1]) + " "+ str(deger[2]) + " " +str(deger[3])+ "\n")
+if not kod_bos:
+    if"END" not in codes[len(codes)-1] :
+        print("END yok assembler düzgün çalışmayabilir")
+        hatalar.append("END yok assembler duzgun calismayabilir"+"\n")
 with open("hata.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
-    dosya.truncate()
+    print(hatalar)
     for hatacik in hatalar:
+        print(hatacik)
         dosya.write(hatacik)

@@ -94,18 +94,33 @@ def fix_zero2(str1):
     while len(str1)<2:
         str1 = birlestir("0",str1)
     return str1
+def listeyi_dosyaya_yaz(liste, dosya_yolu):
+    with open(dosya_yolu, 'w') as dosya:
+        for eleman in liste:
+            dosya.write(str(eleman) + '\n')
+            dosya.flush()
 with open("object_code.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
+    dosya.seek(0)  
     dosya.truncate() 
 with open("object_program.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
+    dosya.seek(0)  
     dosya.truncate() 
 with open("OpcodeTable.txt", "r") as dosya:
     opcodeTable = {}
     for satir  in dosya:
         opcode, hexcode, form = satir.split()
         opcodeTable[opcode] = hexcode, form
-        
+
+    
+hatalar=[]
+kod_bos=False
+with open("source_code.txt", "r") as dosya:
+    codes = []
+    ilk_karakter = dosya.read(1)
+    if not ilk_karakter:
+        hatalar.append("Dosya bos" + "\n")
+        listeyi_dosyaya_yaz(hatalar,"hata.txt")
+        kod_bos=True
 with open("source_code.txt", "r") as dosya:
     codes = []
     for code in dosya:
@@ -140,7 +155,7 @@ x_register = 0
 linkage_register=0
 block_adres=[]
 lit_list = []
-header_kaydi = []
+header_kaydi = ""
 text_kaydi= []
 mod_kaydi=[]
 use_used=False
@@ -149,8 +164,7 @@ kod_uzunluk=0
 temp_t_l=""
 temp_t_r=""
 test_temp_t_l=""
-hatalar=[]
-end_kaydi=[]
+end_kaydi=""
 for key in block_tab:
     block_adres.append(int(block_tab[key][0],16))
     program_length=fix_word(hex(int(block_tab[key][0],16)+int(block_tab[key][2],16))[2:])
@@ -158,7 +172,6 @@ for key in block_tab:
 for code in codes:
     label, opcode, operand=parse_line(code)
     object_code_curr="0"
-
     if opcode == "START":
         
         if operand == None:
@@ -170,32 +183,36 @@ for code in codes:
             baslangic = int(operand, 16)           
             adres = baslangic        
             print(opcode + " "+hex(adres))
-        header_kaydi.append("H"+"^" +label+"^" +fix_word(hex(baslangic)[2:])+"^"+program_length)
+        header_kaydi=("H"+"^" +label+"^" +fix_word(hex(baslangic)[2:])+"^"+program_length)
     if opcode[0] == "+":
             object_code.append(fix_word(hex(adres)[2:]))
-            if operand[0] == "@":
-                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
-                object_code_curr = hex(object_code_curr)[2:]
-                object_code_curr=birlestir(object_code_curr,"1")
-                object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
-            elif operand[0] == "#":
-                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
-                object_code_curr = hex(object_code_curr)[2:]
-                object_code_curr=birlestir(object_code_curr,"1")
-                object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
-            elif operand[-2:] == ",X":
-                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
-                object_code_curr = hex(object_code_curr)[2:]
-                object_code_curr=birlestir(object_code_curr,"9")
-                object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
+            if operand in symtab or operand[:-2] in symtab or operand[1:] in symtab:
+                if operand[0] == "@":
+                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 2
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1")
+                    object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
+                elif operand[0] == "#":
+                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 1
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1")
+                    object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand[1:]][0]))
+                elif operand[-2:] == ",X":
+                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"9")
+                    object_code_curr=birlestir(object_code_curr,fix_format4(hex(int(symtab[operand[:-2]][0],16)+x_register)[2:]))
+                else:
+                    object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
+                    object_code_curr = hex(object_code_curr)[2:]
+                    object_code_curr=birlestir(object_code_curr,"1")
+                    object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
             else:
-                object_code_curr = int(opcodeTable[(opcode[1:])][0],16) + 3
-                object_code_curr = hex(object_code_curr)[2:]
-                object_code_curr=birlestir(object_code_curr,"1")
-                object_code_curr=birlestir(object_code_curr,fix_format4(symtab[operand][0]))
+                hatalar.append("Format 4'te constant kullanamazsin")
             mod_kaydi.append("M" + "^"+fix_word(hex(adres - baslangic)[2:])+ "^" + "05" )
             adres = adres + 4 
     elif opcode in opcodeTable and operand != None and opcodeTable[opcode][1] == "3/4":
+        
         object_code.append(fix_word(hex(adres)[2:]))
         if operand[0] == "@":
             if operand[1:] in symtab:
@@ -231,8 +248,10 @@ for code in codes:
                 object_code_curr=birlestir(object_code_curr,"0")                 
                 object_code_curr=birlestir(object_code_curr,fix_format3(operand[1:]))
         elif operand[0] == "#":
+            
             if operand[1:] in symtab:
                 next_adres=adres + 3
+                
                 if pc_adres(next_adres,symtab[operand[1:]][0]):
                     object_code_curr = int(opcodeTable[(opcode)][0],16) + 3
                     object_code_curr = hex(object_code_curr)[2:]
@@ -454,8 +473,10 @@ for code in codes:
     elif opcode == "ORG":
         if operand == None:
             pass
+        elif operand in symtab:
+            adres= int(symtab[operand][0])
         else:
-            adres= int(symtab[operand][0])   
+            hatalar.append("Bu operand sembol tablosunda bulunmuyor"+"\n")
     elif opcode=="WORD":   
         object_code.append(fix_word(hex(adres)[2:]))
         object_code_curr=fix_word(hex(int(operand))[2:])
@@ -479,13 +500,42 @@ for code in codes:
                 object_code.append(object_code_curr)
             lit_list=[]
             object_code_curr="0"
-        end_kaydi.append("E"+fix_word(hex(baslangic)[2:]))
-        print(31)
+        end_kaydi =("E"+fix_word(hex(baslangic)[2:]))
+       
     elif opcode == "RESW":
         adres += 3 * int(operand)
     elif opcode == "RESB":
         adres += int(operand)
-        
+    if opcode =="LDB" or opcode == "+LDB" :
+        if operand in symtab:
+
+            base_register = int(symtab[operand][0],16)
+           
+        elif operand[1:] in symtab:
+            base_register = int(symtab[operand[1:]][0],16)
+        elif operand[:-2] in symtab:
+            base_register = int(symtab[operand[:-2]][0],16)
+        else:
+            if operand[0] == "@" or  operand[0] == "#" :
+                x_register =int(operand[1:],16)
+            elif operand[-2:] == ",X":
+                x_register =int(operand[:-2],16)
+            else:
+                x_register =int(operand,16)
+    if opcode =="LDX" or opcode == "+LDX" :
+        if operand in symtab:
+            x_register = int(symtab[operand][0],16)
+        elif operand[1:] in symtab:
+            x_register = int(symtab[operand[1:]][0],16)
+        elif operand[:-2] in symtab:
+            x_register = int(symtab[operand[:-2]][0],16)
+        else:
+            if operand[0] == "@" or  operand[0] == "#" :
+                x_register =int(operand[1:],16)
+            elif operand[-2:] == ",X":
+                x_register =int(operand[:-2],16)
+            else:
+                x_register =int(operand,16)
     if object_code_curr != "0" or use_used :
         if object_code_curr != "0":
             object_code.append(code)
@@ -533,13 +583,14 @@ for _ in range(int(len(object_code)/3)):
     object_code_dict.append(satir)
 
 object_program=[]
-object_program.append(header_kaydi[0])
+if not kod_bos:
+    object_program.append(header_kaydi)
 for i in text_kaydi:
     object_program.append(i)
 for i in mod_kaydi:
     object_program.append(i)
-if "END" in codes:
-    object_program.append(end_kaydi[0])
+if not kod_bos:
+    object_program.append(end_kaydi)
 
 for i in object_program:
     print(i)
@@ -547,14 +598,17 @@ with open("object_code.txt", 'w') as dosya:
     dosya.seek(0)  # Dosyanın başına git
     dosya.truncate()
     for code in object_code_dict:
-        dosya.write(code[0] +" ")  
-        dosya.write(" ".join(code[1]))
-        dosya.write(" "+str(code[2])+ "\n")  
+        if not kod_bos:
+            dosya.write(code[0] +" ")  
+            dosya.write(" ".join(code[1]))
+            dosya.write(" "+str(code[2])+ "\n")  
 with open("object_program.txt", 'w') as dosya:
     dosya.seek(0)  # Dosyanın başına git
     dosya.truncate()
     for code in object_program:
-        dosya.write(code+"\n")  
+        if not kod_bos:
+            dosya.write(code+"\n")  
 with open("hata.txt", 'w') as dosya:
+ 
     for hatacik in hatalar:
         dosya.write(hatacik)
