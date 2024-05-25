@@ -95,7 +95,13 @@ baslangic=0
 cnt=0
 brk = False
 max_len = 0
-
+if "START" not in codes:
+    baslangic=0
+    adres = baslangic
+    block_table[""]=["",hex(baslangic)[2:],current_block]        
+    block_adres.append(adres)
+    max_len = adres
+    max_len_arr.append(block_adres[current_block])
 
 for code in codes:
     label, opcode, operand=parse_line(code)
@@ -116,7 +122,6 @@ for code in codes:
         max_len = adres
         max_len_arr.append(block_adres[current_block])
         block_adres[current_block] = adres
-        print(current_block)
     if label not in sym_tab_t and label != None and opcode != "EQU":
         sym_tab_t.append(hex(adres)[2:])
         sym_tab_t.append(label)
@@ -136,7 +141,7 @@ for code in codes:
                     lit_tab_names.append(operand)   
             else:
                 print("Hatali tuslama")
-                hatalar.append("Hatali tuşlama satir: "+adres+"\n")
+                hatalar.append("Hatali tuşlama satir: "+hex(adres)[2:]+"\n")
     if opcode == "LTORG":
         for lits in lit_tab_names:
             if lits[1] == "C":
@@ -189,15 +194,15 @@ for code in codes:
                             yeni_kisimlar.extend(cumleyi_ayir(i, "+"))
                         else:
                             yeni_kisimlar.append(i)
-                    
                     for i in yeni_kisimlar:
-                        if i in sym_tab_t:
+                        if i in sym_tab_t or i[1:] in sym_tab_t:    
                             if i[0] == "+":
                                 equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
                             elif i[0] =="-":
                                 equ_deger = equ_deger-int(sym_tab_t[sym_tab_t.index(i[1:])-1],16)
                             else :
                                 equ_deger = equ_deger+int(sym_tab_t[sym_tab_t.index(i)-1],16)
+                                
                     
                     sym_tab_t.append(hex(equ_deger)[2:])
                     sym_tab_t.append(label)
@@ -320,7 +325,7 @@ with open("symtab.txt", 'w') as dosya:
     dosya.seek(0)  # Dosyanın başına git
     dosya.truncate()
     for label in sym_tab:
-        dosya.write(label[0] + " " + label[1]+ " " + str(label[2]) + " " +label[3]  +"\n")
+        dosya.write(label[0] + "     " + label[1]+ "   " + str(label[2]) + "    " +label[3]  +"\n")
 
 with open("lit_tab.txt", 'w') as dosya:
     dosya.seek(0)  # Dosyanın başına git
@@ -332,13 +337,12 @@ with open("block_tab.txt", 'w') as dosya:
     dosya.seek(0)  # Dosyanın başına git
     dosya.truncate()
     for anahtar, deger in block_table.items():
-        dosya.write(anahtar+" " + deger[0]+" " +str(deger[1]) + " "+ str(deger[2]) + " " +str(deger[3])+ "\n")
+        dosya.write(anahtar+"   " + deger[0]+"      " +str(deger[1]) + "      "+ str(deger[2]) + "      " +str(deger[3])+ "\n")
 if not kod_bos:
     if"END" not in codes[len(codes)-1] :
         print("END yok assembler düzgün çalışmayabilir")
         hatalar.append("END yok assembler duzgun calismayabilir"+"\n")
 with open("hata.txt", 'w') as dosya:
-    print(hatalar)
+   
     for hatacik in hatalar:
-        print(hatacik)
         dosya.write(hatacik)

@@ -44,7 +44,7 @@ def run_program():
 
     output_text3.config(state=tk.NORMAL)
     output_text3.delete("1.0", tk.END)
-    output_text3.insert(tk.END, f"Sembol Tablosu:\n{symtab_content}")
+    output_text3.insert(tk.END, f"Sembol Tablosu:\nVALUE NAME BLOCK R/A\n{symtab_content}")
     output_text3.config(state=tk.DISABLED)
 
     output_text4.config(state=tk.NORMAL)
