@@ -1,3 +1,4 @@
+hata_flag=False
 def parse_line(parts):
     if len(parts) == 3:
         label, opcode, operand = parts
@@ -23,6 +24,7 @@ def parse_line(parts):
             return None, opcode, None
     else:
         print("Hatalı satır:", parts)
+        hata_flag=True
         return None, None, None
 def cumleyi_ayir(cumle, isaret):
     bolunmus_kisimlar = cumle.split(isaret)
@@ -63,21 +65,21 @@ with open("source_code.txt", "r") as dosya:
         codes.append(kelimeler)  
 
 with open("symtab.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
+    dosya.seek(0)  
     dosya.truncate()
 
 
 with open("lit_tab.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
+    dosya.seek(0) 
     dosya.truncate()
 
        
 with open("block_tab.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
+    dosya.seek(0)  
     dosya.truncate()
 
 with open("hata.txt", 'w') as dosya:
-    dosya.seek(0)  # Dosyanın başına git
+    dosya.seek(0)
     dosya.truncate()
 
 sym_tab_t=[]
@@ -130,6 +132,7 @@ for code in codes:
     elif label in sym_tab_t and label is not None:
         print(label)  
         print("HATA: Bu sembol, sembol tablosunda zaten var.")
+        hata_flag=True
         hatalar.append("HATA: Bu sembol, sembol tablosunda zaten var."+"\n")
     if operand !=None :
         if operand[0]=="=":
@@ -141,7 +144,8 @@ for code in codes:
                     lit_tab_names.append(operand)   
             else:
                 print("Hatali tuslama")
-                hatalar.append("Hatali tuşlama satir: "+hex(adres)[2:]+"\n")
+                hata_flag=True
+                hatalar.append("Hatali tuslama satir: "+hex(adres)[2:]+"\n")
     if opcode == "LTORG":
         for lits in lit_tab_names:
             if lits[1] == "C":
@@ -210,16 +214,19 @@ for code in codes:
                     sym_tab_t.append("A")
                 else:
                     print("Eşit sayida zıt işaret olmalı EQU düzgün çalışmaz")
+                    hata_flag=True
                     hatalar.append("Esit sayida zit işaret olmali EQU düzgün çalişmaz"+"\n")
                     
             elif "*" or "/" in operand:
                 print("hata bu işaretler kullanilamaz")
+                hata_flag=True
                 hatalar.append("Hata bu işaretler kullanilamaz: / , *"+"\n")
         else:
             print("Bu etiket listede var")
+            hata_flag=True
             hatalar.append("Hata bu etiket listede var: "+label+"\n")
             
-            print(sym_tab_t)
+            
         
         
         
@@ -236,7 +243,7 @@ for code in codes:
         elif operand[:2] == "X'":
             adres=adres+int(len(operand[2:-1])/2)       
     
-    if (opcode in opcodeTable or opcode[0]=="+") and opcode != "START":
+    if (opcode in opcodeTable or opcode[0]=="+") and opcode != "START" and hata_flag!=True:
         if opcode in opcodeTable:
             if opcodeTable[opcode][1] == "3/4":
                 #print(opcode + " "+hex(adres))
@@ -251,8 +258,8 @@ for code in codes:
             #print(opcode + " "+hex(adres))
             adres += 4
     else:
-        if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU" and opcode !="WORD"and opcode !="RESW"and opcode !="BYTE" and opcode!="RESB" and opcode != "END":
-            print(opcode)
+        if opcode != "START" and opcode !="ORG" and opcode !="LTORG" and opcode != "USE" and opcode != "EQU" and opcode !="WORD"and opcode !="RESW"and opcode !="BYTE" and opcode!="RESB" and opcode != "END" and opcode not in opcodeTable:
+            print(operand)
             print("HATA: Bu komut, komut tablosunda yok.")
             hatalar.append("HATA bu komut, komut tablosunda yok: "+ opcode +  "\n")
            
@@ -286,7 +293,7 @@ for code in codes:
     block_adres[current_block] = adres
     if max_len_arr[current_block] < block_adres[current_block]:
         max_len_arr[current_block] = block_adres[current_block]
-    
+    hata_flag=False
 index=0
 for key,value in block_table.items():
     block_table[key].append(hex(max_len_arr[index]-baslangic)[2:])

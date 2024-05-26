@@ -1,1 +1,1 @@
-END yok assembler duzgun calismayabilir
+Hata, bu komut bu sekilde kullanilamaz:  COMPOperand bos, komut object programa eklenmedi: COMP
